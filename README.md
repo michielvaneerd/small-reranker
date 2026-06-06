@@ -38,7 +38,7 @@ reranker_model/tokenizer.json
 
 `docker compose up --build -d`
 
-# Exmaple /rerank request
+# Example `/rerank` request
 
 ```
 curl -X POST "http://localhost:8000/rerank" \
