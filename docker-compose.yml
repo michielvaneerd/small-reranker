@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  reranker-api:
+    build: .
+    container_name: bge-reranker-onnx
+    ports:
+      - "8000:8000"
+    
+    # Policies for uptime and recovery
+    restart: always
+    
+    # Environment configurations passed directly to the container
+    environment:
+      - OMP_NUM_THREADS=2
+      - MKL_NUM_THREADS=2
+
+    # --- NIEUW: AUTOMATISCHE HEALTHCHECK ---
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    #   interval: 30s    # Controleer elke 30 seconden
+    #   timeout: 5s      # Geef de API maximaal 5 seconden om te antwoorden
+    #   retries: 3       # Start pas opnieuw op na 3 opeenvolgende fouten
+    #   start_period: 40s # Geef de container 40 seconden opstarttijd om het model te downloaden/laden
+    
+    # Strict resource barriers to protect your 6GB/3-vCPU webserver
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'       # Hard limit: container cannot use more than 2 full vCPUs
+          memory: 2500M     # Hard limit: absolute max RAM allowed before Docker restarts it
+        reservations:
+          cpus: '1.0'       # Guaranteed baseline CPU allocation
+          memory: 1000M     # Guaranteed baseline RAM allocation (enough to hold the model)
+
+    # Optional: Persist the Hugging Face model download so it doesn't redownload on restart
+    volumes:
+      # - hf_cache:/home/appuser/.cache/huggingface
+      # - ./reranker_model:/app/model:ro # :ro betekent Read-Only voor extra veiligheid
+      - ./reranker_model:/app/model
+
+# volumes:
+#   hf_cache:
