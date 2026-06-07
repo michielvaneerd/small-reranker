@@ -40,8 +40,10 @@ reranker_model/tokenizer.json
 
 # Example `/rerank` request
 
-```
-curl -X POST "http://localhost:8000/rerank" \
+## Request without document id
+
+```curl
+curl -X POST "http://localhost:8001/rerank" \
      -H "Content-Type: application/json" \
      -d '{
        "query": "Hoeveel RAM heeft mijn webserver nodig voor een lokaal LLM model?",
@@ -54,3 +56,72 @@ curl -X POST "http://localhost:8000/rerank" \
      }'
 ```
 
+### Response
+
+```json
+{
+    "results": [
+        {
+            "document": "Voor het lokaal draaien van kleinere open-source LLM of reranker modellen is minimaal 2GB tot 8GB RAM vereist, afhankelijk van de modelgrootte en kwantisatie.",
+            "score": 5.066494464874268
+        },
+        {
+            "document": "Een standaard Nginx webserver draait prima op een machine met minder dan 512MB RAM.",
+            "score": -1.8729965686798096
+        },
+        {
+            "document": "Kwantisatie comprimeert modelgewichten van FP32 naar INT8 om het geheugengebruik drastisch te verlagen.",
+            "score": -9.211983680725098
+        },
+        {
+            "document": "De introductie van Docker containers helpt bij het isoleren van applicaties op Linux systemen.",
+            "score": -10.98775863647461
+        }
+    ]
+}
+```
+
+## Request with document id
+
+```
+curl -X POST "http://localhost:8001/rerank" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "Hoeveel RAM heeft mijn webserver nodig voor een lokaal LLM model?",
+       "documents": [
+         {"id": 1, "content": "Een standaard Nginx webserver draait prima op een machine met minder dan 512MB RAM."},
+         {"id": 2, "content": "Voor het lokaal draaien van kleinere open-source LLM of reranker modellen is minimaal 2GB tot 8GB RAM vereist, afhankelijk van de modelgrootte en kwantisatie."},
+         {"id": 3, "content": "De introductie van Docker containers helpt bij het isoleren van applicaties op Linux systemen."},
+         {"id": 4, "content": "Kwantisatie comprimeert modelgewichten van FP32 naar INT8 om het geheugengebruik drastisch te verlagen."}
+       ]
+     }'
+```
+
+### Response
+
+```json
+{
+    "results": [
+        {
+            "id": 2,
+            "content": "Voor het lokaal draaien van kleinere open-source LLM of reranker modellen is minimaal 2GB tot 8GB RAM vereist, afhankelijk van de modelgrootte en kwantisatie.",
+            "score": 5.066494464874268
+        },
+        {
+            "id": 1,
+            "content": "Een standaard Nginx webserver draait prima op een machine met minder dan 512MB RAM.",
+            "score": -1.8729965686798096
+        },
+        {
+            "id": 4,
+            "content": "Kwantisatie comprimeert modelgewichten van FP32 naar INT8 om het geheugengebruik drastisch te verlagen.",
+            "score": -9.211983680725098
+        },
+        {
+            "id": 3,
+            "content": "De introductie van Docker containers helpt bij het isoleren van applicaties op Linux systemen.",
+            "score": -10.98775863647461
+        }
+    ]
+}
+```

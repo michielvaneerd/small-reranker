@@ -31,9 +31,13 @@ sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 # session = ort.InferenceSession(onnx_path, sess_options, providers=["CPUExecutionProvider"])
 session = ort.InferenceSession(ONNX_FILE_PATH, sess_options, providers=["CPUExecutionProvider"])
 
+class DocumentItem(BaseModel):
+    id: int
+    content: str
+
 class RerankRequest(BaseModel):
     query: str
-    documents: list[str]
+    documents: list[str | DocumentItem]
 
 @app.get("/health")
 async def health_check():
@@ -55,8 +59,19 @@ async def health_check():
 
 @app.post("/rerank")
 async def rerank(data: RerankRequest):
+    # Normalize documents: support both plain strings and {"id": ..., "content": ...} objects
+    doc_ids = []
+    doc_texts = []
+    for doc in data.documents:
+        if isinstance(doc, DocumentItem):
+            doc_ids.append(doc.id)
+            doc_texts.append(doc.content)
+        else:
+            doc_ids.append(None)
+            doc_texts.append(doc)
+
     # Construct sentence pairs: [[query, doc1], [query, doc2]...]
-    pairs = [[data.query, doc] for doc in data.documents]
+    pairs = [[data.query, text] for text in doc_texts]
     
     # Tokenize the pairs with padding and truncation
     # BGE-v2-M3 supports up to 8192 tokens, but limit to 512/1024 for speed on small CPUs
@@ -85,6 +100,11 @@ async def rerank(data: RerankRequest):
     scores = onnx_outputs[0].flatten().tolist()
     
     # Pair documents with scores and sort in descending order
-    results = sorted(zip(data.documents, scores), key=lambda x: x[1], reverse=True)
-    
-    return {"results": [{"document": doc, "score": score} for doc, score in results]}
+    results = sorted(zip(doc_ids, doc_texts, scores), key=lambda x: x[2], reverse=True)
+
+    def build_result(doc_id, text, score):
+        if doc_id is not None:
+            return {"id": doc_id, "content": text, "score": score}
+        return {"document": text, "score": score}
+
+    return {"results": [build_result(doc_id, text, score) for doc_id, text, score in results]}

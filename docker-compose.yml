@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   reranker-api:
     build: .
     container_name: bge-reranker-onnx
     ports:
-      - "8000:8000"
+      - "8001:8000"
     
     # Policies for uptime and recovery
     restart: always
@@ -17,7 +15,7 @@ services:
 
     # --- NIEUW: AUTOMATISCHE HEALTHCHECK ---
     # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    #   test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
     #   interval: 30s    # Controleer elke 30 seconden
     #   timeout: 5s      # Geef de API maximaal 5 seconden om te antwoorden
     #   retries: 3       # Start pas opnieuw op na 3 opeenvolgende fouten
